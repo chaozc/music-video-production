@@ -1,6 +1,6 @@
 # 🎵 Music Video Production Pipeline
 
-An end-to-end pipeline for generating AI music videos — from song creation to YouTube upload. Built for the [Isaaax](https://www.youtube.com/@Isaaax) YouTube channel (cozy jazz music).
+An end-to-end pipeline for generating AI music videos — from song creation to YouTube upload.
 
 ## Pipeline Overview
 
@@ -14,13 +14,6 @@ music-generation → cover-art-generation → audio-to-video → youtube-upload
 | **cover-art-generation** | Create matching cover art from mood/genre descriptions with text overlay |
 | **audio-to-video** | Combine audio + cover art into video (single or playlist mode) via ffmpeg |
 | **youtube-upload** | Upload to YouTube with auto-generated metadata, tags, and thumbnails |
-
-## Default Style
-
-```
-Mellow, slow soft bedtime jazz, french style, mellow female vocal,
-piano foundation, acoustic guitar bridge and solo, slow waltz
-```
 
 ## Getting Started
 
