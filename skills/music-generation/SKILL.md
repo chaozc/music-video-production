@@ -1,208 +1,121 @@
 ---
 name: music-generation
-description: Generate AI music tracks from text prompts with configurable style, lyrics, and duration. Use when someone wants to create music, generate songs, make beats, produce audio tracks, or any request to create audio from a description. Triggers on phrases like "generate music", "create a song", "make a track", "produce beats", "write me a jazz piece". Supports instrumental and vocal tracks, style presets, custom lyrics, and batch generation.
+description: Generate AI music tracks from text prompts using Suno AI. Use when someone wants to create music, generate songs, make beats, produce audio tracks, or turn lyrics into music. Triggers on "generate music", "create a song", "make a track", "write me a jazz piece", "produce beats", "turn these lyrics into a song". Supports custom lyrics, style tags, instrumental mode, and batch generation. Requires a Suno account cookie from the user.
 ---
 
 # Music Generation
 
-Generate AI music from text prompts via [suno-api-client](https://github.com/chaozc/suno-api-client).
+Generate music via Suno AI using [suno-api-client](https://github.com/chaozc/suno-api-client).
 
-## Provider
+## Setup (one-time)
 
-Uses **Suno AI** — best-in-class quality for vocal and instrumental music (V5 model). Authentication is cookie-based with interactive hCaptcha solving for datacenter IPs.
-
-See [references/providers.md](references/providers.md) for provider details.
-
-### Prerequisites
-
-- Node.js 18+
-- A Suno account (Pro recommended — 2500 credits/mo)
-- Chromium (only needed if your IP triggers hCaptcha)
-
-### Setup
-
-1. Install:
-   ```bash
-   npm install suno-api-client
-   # If captcha solving is needed:
-   npx playwright install chromium
-   ```
-
-2. Get your Suno cookie:
-   - Log in to [suno.com](https://suno.com) in your browser
-   - Open DevTools → Application → Cookies → `suno.com`
-   - Copy all cookies as a single string (`name=value` pairs separated by `; `)
-
-3. Set environment:
-   ```bash
-   export SUNO_COOKIE="<your-cookie>"
-   ```
-
-### Cookie Refresh
-
-Cookies expire periodically (days to weeks). When API calls fail with auth errors, repeat step 2 and update `SUNO_COOKIE`.
+```bash
+npm install github:chaozc/suno-api-client
+npx playwright install chromium  # only needed for captcha solving
+```
 
 ## Workflow
 
-### 1. Gather parameters
+### 1. Get cookie from user
 
-| Parameter | Required | Default | Description |
-|-----------|----------|---------|-------------|
-| prompt | yes | — | Lyrics or music description |
-| tags | no | — | Style/genre tags (e.g., "jazz, mellow, piano, female vocal") |
-| title | no | — | Song title |
-| instrumental | no | false | Skip vocals entirely |
-| model | no | `chirp-v4-5` | Suno model version |
-| output-dir | no | `./output/` | Where to save downloaded files |
+Ask the user for their Suno cookie. Provide these instructions:
 
-### 2. Solve captcha (if needed)
+> 1. Open [suno.com](https://suno.com) and log in
+> 2. Open DevTools (F12) → Application → Cookies → `suno.com`
+> 3. Copy all cookies as a single string (name=value pairs separated by `; `)
 
-Datacenter/VPS IPs almost always trigger hCaptcha. Home IPs usually don't.
+Store as `SUNO_COOKIE` environment variable.
+
+### 2. Check captcha requirement
 
 ```bash
-npx suno-captcha
-# Saves screenshot → you identify correct images → write answer to .captcha-cmd
-# Token saved to .captcha-token
+SUNO_COOKIE="$COOKIE" node -e "
+  const {authenticate, isCaptchaRequired} = require('suno-api-client');
+  (async () => {
+    const {jwt} = await authenticate(process.env.SUNO_COOKIE);
+    console.log('captcha_required:', await isCaptchaRequired(jwt));
+  })();
+"
 ```
 
-Or programmatically:
+- `false` → skip to step 4
+- `true` → proceed to step 3
 
-```javascript
-const { solveCaptchaInteractive } = require('suno-api-client');
+Home IPs rarely trigger captcha. Datacenter/VPS IPs almost always do.
 
-const result = await solveCaptchaInteractive({
-  cookie: process.env.SUNO_COOKIE,
-  onScreenshot: (path) => {
-    // Send screenshot to user for solving
-  }
-});
-// Write answer: echo "4 5 6" > .captcha-cmd
-```
-
-### 3. Generate
-
-**CLI:**
+### 3. Solve captcha (interactive)
 
 ```bash
-npx suno-generate \
-  --prompt "Verse 1:\nSoft rain on the window..." \
-  --tags "jazz, mellow, female vocal, piano, slow waltz" \
-  --title "Rainy Evening" \
+SUNO_COOKIE="$COOKIE" npx suno-captcha
+```
+
+This launches a headless browser, triggers hCaptcha, and saves a screenshot to `captcha-challenge.png`.
+
+**Agent flow:**
+1. Send `captcha-challenge.png` to the user
+2. Describe the challenge (question + numbered grid 1-9, left→right top→bottom)
+3. User replies with grid numbers (e.g., "4 5 6")
+4. Write answer to command file: `echo "4 5 6" > .captcha-cmd`
+5. Script clicks cells, submits, saves token to `.captcha-token`
+
+If captcha fails, script saves new screenshot — repeat from step 1.
+
+### 4. Generate
+
+```bash
+SUNO_COOKIE="$COOKIE" npx suno-generate \
+  --prompt "Verse 1:\nYour lyrics here..." \
+  --tags "genre and style tags" \
+  --title "Song Title" \
   --token-file .captcha-token \
   --output-dir ./output
 ```
 
-**Programmatic:**
+| Flag | Required | Description |
+|------|----------|-------------|
+| `--prompt` | yes | Lyrics or description |
+| `--tags` | no | Style tags (e.g., "jazz, mellow female vocal, piano, slow waltz") |
+| `--title` | no | Song title |
+| `--instrumental` | no | Skip vocals |
+| `--token-file` | if captcha | Path to saved captcha token |
+| `--output-dir` | no | Download directory (default: `./output`) |
+| `--no-wait` | no | Don't wait for completion |
+| `--no-download` | no | Don't download files |
 
-```javascript
-const { authenticate, generate, waitForCompletion, downloadClips } = require('suno-api-client');
+Each call generates 2 tracks (10 credits each).
 
-const { jwt } = await authenticate(process.env.SUNO_COOKIE);
+### 5. Batch generation
 
-const result = await generate(jwt, {
-  prompt: 'Verse 1:\nSoft rain on the window...',
-  tags: 'jazz, mellow, female vocal, piano, slow waltz',
-  title: 'Rainy Evening',
-  captchaToken: token  // from captcha solver, or null if not needed
-});
+For multiple songs:
 
-const clips = await waitForCompletion(jwt, result.clips.map(c => c.id));
-await downloadClips(clips, './output');
-```
+1. Solve captcha once (step 3)
+2. Call `npx suno-generate` for each prompt sequentially
+3. Wait 30-60 seconds between calls to avoid rate limits
+4. One captcha token may cover multiple generations
 
-**Response structure:**
+### 6. Output
 
-Each generation produces 2 tracks. Clip objects include:
-```json
-{
-  "id": "abc123",
-  "title": "Rainy Evening",
-  "audio_url": "https://cdn1.suno.ai/abc123.mp3",
-  "image_url": "https://cdn2.suno.ai/image_abc123.jpeg",
-  "status": "complete",
-  "metadata": { "duration": 180, "tags": "jazz, mellow" }
-}
-```
+Files saved to output directory:
+- `YYYY-MM-DD-title-slug-shortid.mp3` — audio
+- `YYYY-MM-DD-title-slug-shortid-cover.jpeg` — cover image
+- `YYYY-MM-DD-title-slug-meta.json` — metadata sidecar
 
-### 4. File naming
+## Style presets
 
-```
-<output-dir>/<YYYY-MM-DD>-<title-slug>-<short-id>.mp3
-```
+See [references/style-presets.md](references/style-presets.md) for curated tag combinations by genre.
 
-Example: `2026-03-16-rainy-evening-abc12345.mp3`
+## Troubleshooting
 
-### 5. Metadata sidecar
-
-Save alongside each batch:
-
-```json
-{
-  "generated_at": "2026-03-16T01:00:00Z",
-  "provider": "suno",
-  "prompt": "Soft rain on the window...",
-  "tags": "jazz, mellow, female vocal, piano, slow waltz",
-  "title": "Rainy Evening",
-  "instrumental": false,
-  "tracks": [
-    {
-      "id": "abc123",
-      "title": "Rainy Evening",
-      "status": "complete",
-      "duration": 180,
-      "audio_url": "https://cdn1.suno.ai/abc123.mp3"
-    }
-  ]
-}
-```
-
-### 6. Batch generation
-
-To generate multiple songs (e.g., 10 tracks for a playlist):
-
-1. Solve captcha once (token may work for multiple requests)
-2. Prepare a list of prompts (5 prompts × 2 tracks each = 10 songs)
-3. Call `generate()` for each prompt sequentially
-4. Wait 30-60 seconds between calls to avoid rate limits
-5. Download all audio files after generation completes
-
-### 7. Report
-
-After generation, report: file paths, sizes, durations (via `ffprobe`), and prompts used.
-
-## Other Useful API Methods
-
-| Method | Description |
-|--------|-------------|
-| `getCredits(jwt)` | Check remaining credits |
-| `getFeed(jwt)` | Get recent generated songs |
-| `isCaptchaRequired(jwt)` | Check if captcha is needed |
-
-## Style Presets
-
-Override with `--tags "free text"`.
-
-| Preset | Tags |
-|--------|------|
-| `bedtime-jazz` | mellow, slow soft bedtime jazz, french style, mellow female vocal, piano foundation, acoustic guitar bridge and solo, slow waltz |
-| `cozy-cafe` | cozy jazz piano trio, soft brushed drums, warm upright bass, gentle Rhodes piano, intimate café atmosphere |
-| `lofi-chill` | lo-fi hip hop, vinyl crackle, mellow piano chords, lazy drums, warm analog bass |
-| `ambient-study` | ambient soundscape, soft pads, gentle arpeggios, calm and meditative |
-| `bossa-nova` | smooth bossa nova, nylon guitar, soft percussion, warm Brazilian feel |
-
-## Error Handling
-
-| Error | Cause | Fix |
-|-------|-------|-----|
-| Auth / 401 | Cookie expired | Refresh cookie (see Setup step 2) |
-| 422 Token validation failed | Captcha required | Run captcha solver first |
-| Generation timeout | Suno busy | Retry after 2-3 min |
-| Rate limited | Too many requests | Wait 60+ seconds between batch calls |
+| Error | Fix |
+|-------|-----|
+| "No active Suno session" | Cookie expired — ask user to refresh |
+| "Token validation failed" (422) | Captcha required — run step 3 |
+| Generation timeout | Suno busy — retry after 2-3 min |
+| Rate limited | Wait 60+ seconds between calls |
 
 ## Limitations
 
-- Suno generates 2 tracks per call (10 credits each)
+- Suno generates 2 tracks per call
 - Pro plan: 2500 credits/mo (~250 generations)
-- Cookie expires periodically — needs manual refresh
-- Datacenter IPs trigger captcha; home IPs usually don't
-- Unofficial integration — use responsibly
+- Cookies expire periodically
+- Unofficial integration — Suno has no public API
