@@ -52,8 +52,9 @@ warm color palette, soft focus, cinematic lighting, 4K quality
 **Key rules:**
 - Match visuals to the music mood, not literal lyrics
 - Keep a consistent visual identity across tracks for the same channel
-- No text in the generated image unless explicitly requested (add text overlay separately)
+- **Always generate the image without any text** — text overlay is added separately via Pillow (see step 3b)
 - Include technical quality tags: "4K quality", "professional photography", "cinematic lighting"
+- Add "no text, no words, no letters, no watermark" to the prompt to prevent AI-generated text artifacts
 
 ### 3. Generate
 
@@ -70,6 +71,64 @@ curl -X POST https://api.openai.com/v1/images/generations \
 
 # Any other tool — adapt accordingly
 ```
+
+### 3b. Text overlay (Pillow)
+
+When `text-overlay` is provided, use Pillow to overlay text on the generated image. This gives precise control over font, size, position, and color — far more reliable than asking the image AI to render text.
+
+**Process:**
+1. Generate a clean background image (no text) via the image AI
+2. Use Pillow (`PIL.ImageDraw`) to render text on top
+3. Choose font based on the music genre/mood:
+
+**Font selection by genre:**
+
+| Genre/Mood | Recommended Font Style | Example Fonts (Google Fonts) |
+|------------|----------------------|------------------------------|
+| Jazz, French, elegant | High-contrast serif | Playfair Display, Cormorant |
+| Classical, orchestral | Traditional serif | Lora, EB Garamond |
+| Lo-fi, chill, modern | Light sans-serif | Josefin Sans, Raleway |
+| Electronic, synthwave | Geometric sans | Orbitron, Space Grotesk |
+| Folk, acoustic, warm | Rounded serif | Merriweather, Source Serif |
+| Hip-hop, bold, urban | Heavy sans-serif | Bebas Neue, Oswald |
+
+Download fonts from [Google Fonts GitHub](https://github.com/google/fonts/tree/main/ofl) as `.ttf` files.
+
+**Pillow text overlay template:**
+
+```python
+from PIL import Image, ImageDraw, ImageFont
+
+img = Image.open("background.png")
+draw = ImageDraw.Draw(img)
+w, h = img.size
+
+title_font = ImageFont.truetype("font.ttf", int(h * 0.10))
+sub_font = ImageFont.truetype("font.ttf", int(h * 0.05))
+
+title = "Album Title"
+subtitle = "by Artist"
+
+# Center text
+title_bbox = draw.textbbox((0, 0), title, font=title_font)
+title_w = title_bbox[2] - title_bbox[0]
+title_x = (w - title_w) // 2
+# ... (center vertically similarly)
+
+# Subtle shadow for readability
+draw.text((title_x+2, title_y+2), title, font=title_font, fill=(0, 0, 0, 90))
+# Main text
+draw.text((title_x, title_y), title, font=title_font, fill=(255, 255, 255, 245))
+
+img.save("cover-final.png", quality=95)
+```
+
+**Text styling guidelines:**
+- Use Light/Regular weight — avoid bold for elegant genres
+- White text with subtle dark shadow for readability on any background
+- Title at ~10% of image height, subtitle at ~5%
+- Center both lines horizontally and vertically as a group
+- Keep text away from edges (minimum 10% margin)
 
 ### 4. File naming
 
