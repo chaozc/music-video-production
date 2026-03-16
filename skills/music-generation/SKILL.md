@@ -115,7 +115,7 @@ See [references/style-presets.md](references/style-presets.md) for curated tag c
 
 ## Limitations
 
-- Suno generates 2 tracks per call
-- Pro plan: 2500 credits/mo (~250 generations)
-- Cookies expire periodically
+- Suno generates 2 tracks per call (10 credits each)
+- Credits depend on user's Suno plan
+- Cookies expire periodically — user must refresh
 - Unofficial integration — Suno has no public API
