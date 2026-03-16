@@ -1,66 +1,35 @@
 # Music Generation Providers
 
-This skill is provider-agnostic. The interface contract: **text prompt + options → MP3 files + metadata JSON**.
+## Current: Suno AI via gcui-art/suno-api
 
-## Current: Suno via suno-mcp
+- **Repo**: https://github.com/gcui-art/suno-api
+- **How it works**: Self-hosted Node.js server that wraps Suno's internal API. Uses your Suno cookie for auth and 2Captcha for automatic hCaptcha solving.
+- **Quality**: Best-in-class for vocal music, especially jazz, pop, and lo-fi genres (Suno V5).
+- **Cost**: Suno subscription ($10-30/mo) + 2Captcha (~$2-3/1000 solves)
+- **Limitations**: Cookie expires periodically; unofficial integration (TOS risk, low for personal use)
+- **Setup**: See main SKILL.md
 
-- **Repo:** [sandraschi/suno-mcp](https://github.com/sandraschi/suno-mcp)
-- **Method:** Playwright browser automation against suno.com
-- **Auth:** Email + password (env vars `SUNO_EMAIL`, `SUNO_PASSWORD`)
-- **Pros:** Free tier works, no third-party API needed
-- **Cons:** Browser automation is fragile, no official API support
+## Alternative: MusicGPT (musicgpt.com)
 
-### MCP Tools
+- **Docs**: https://docs.musicgpt.com
+- **How it works**: Official cloud API. Sign up, get API key, call REST endpoints.
+- **Quality**: Untested — needs evaluation against Suno V5
+- **Cost**: Free tier available, paid plans by usage
+- **Advantages**: Official API, no cookie management, no captcha, no TOS risk
+- **When to switch**: If Suno cracks down on unofficial API usage, or if MusicGPT quality matches Suno
 
-| Tool | Purpose |
-|------|---------|
-| `suno_open_browser` | Launch Playwright browser |
-| `suno_login` | Authenticate with Suno |
-| `suno_generate_track` | Submit prompt and generate |
-| `suno_get_status` | Poll generation status |
-| `suno_download_track` | Download completed tracks |
-| `suno_close_browser` | Cleanup |
+## Previous: suno-mcp (Playwright browser automation)
 
-### Pricing (as of 2026)
+- **Repo**: https://github.com/sandraschi/suno-mcp
+- **How it works**: Full Playwright browser automation — opens Suno in a headless browser, clicks through the UI
+- **Why replaced**: Heavier than gcui-art/suno-api, harder to maintain, SSO login issues
+- **Status**: Deprecated in this skill
 
-| Tier | Price | Songs/month | Commercial use |
-|------|-------|-------------|----------------|
-| Free | $0 | ~5/day | No |
-| Pro | $10/mo | 500 | Yes |
-| Premier | $30/mo | 2000 | Yes |
+## Swap Guide
 
-## Alternative: Suno via third-party API
+To switch providers:
 
-Services like APIPASS, Kie.ai, or CometAPI wrap Suno's internal API.
-
-- **Method:** REST API calls
-- **Auth:** API key from the third-party service
-- **Pros:** Programmatic, no browser needed, faster
-- **Cons:** Extra cost, reverse-engineered (may break), legal gray area
-
-To swap: replace the MCP tool calls in the workflow with REST calls to the chosen API. Keep the same file naming and metadata sidecar format.
-
-## Alternative: Suno Official API (future)
-
-As of March 2026, Suno has no official public API. When released:
-
-- Replace browser automation with official REST endpoints
-- Switch auth from email/password to API key
-- Expect better reliability and rate limits
-
-## Alternative: Udio
-
-- **Site:** udio.com
-- **Method:** API or browser automation (TBD)
-- **Pros:** Competitive quality, different musical strengths
-- **Cons:** Separate account, different parameters
-
-To swap: implement Udio's interface in the generation step, map parameters (prompt, style, lyrics) to Udio equivalents.
-
-## Alternative: Local models (MusicGen, etc.)
-
-- **Method:** Local inference via Hugging Face / PyTorch
-- **Pros:** Free, private, no rate limits
-- **Cons:** Requires GPU, no vocal/lyrics support, lower quality
-
-To swap: replace MCP calls with local model inference script. Vocal tracks not supported — instrumental only.
+1. Update SKILL.md's "Provider" section and workflow steps
+2. Update API endpoints and request/response format
+3. Keep the same file naming convention and metadata sidecar format
+4. Test with a single track before batch generation
