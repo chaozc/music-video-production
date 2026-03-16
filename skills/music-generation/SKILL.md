@@ -13,7 +13,7 @@ Currently uses [suno-mcp](https://github.com/sandraschi/suno-mcp) (Playwright br
 
 ### Credentials
 
-Set as environment variables or in `~/.openclaw/openclaw.json` under `skills.music-generation.env`:
+Set as environment variables:
 - `SUNO_EMAIL` — Suno account email
 - `SUNO_PASSWORD` — Suno account password
 
