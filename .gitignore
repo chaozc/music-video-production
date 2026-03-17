@@ -1,0 +1,5 @@
+.captcha-token
+node_modules/
+batch-output/
+*.mp3
+*.mp4
