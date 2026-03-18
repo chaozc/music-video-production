@@ -26,25 +26,27 @@ Verify with: `ffmpeg -version`
 
 This skill includes `scripts/build-video.py` — a CLI tool that wraps ffmpeg with correct flags for audio-to-video conversion. **Prefer using the script over raw ffmpeg commands** for reliability and consistency.
 
+The script is at `scripts/build-video.py` within this skill directory.
+
 ```bash
 # Single track
-python scripts/build-video.py --audio track.mp3 --cover cover.png --output video.mp4
+python build-video.py --audio track.mp3 --cover cover.png --output video.mp4
 
 # Playlist from directory
-python scripts/build-video.py --mp3-dir ./songs --cover cover.png --output playlist.mp4
+python build-video.py --mp3-dir ./songs --cover cover.png --output playlist.mp4
 
 # Playlist with explicit track order
-python scripts/build-video.py --mp3-dir ./songs \
+python build-video.py --mp3-dir ./songs \
   --order "Track-A.mp3,Track-B.mp3,Track-C.mp3" \
   --cover cover.png --output playlist.mp4
 
 # With text overlay on cover
-python scripts/build-video.py --mp3-dir ./songs --cover cover.png \
+python build-video.py --mp3-dir ./songs --cover cover.png \
   --title "Album Title" --subtitle "by Artist" --font /path/to/font.ttf \
   --output playlist.mp4
 
 # Custom resolution + save timestamps
-python scripts/build-video.py --mp3-dir ./songs --cover cover.png \
+python build-video.py --mp3-dir ./songs --cover cover.png \
   --resolution 3840x2160 --timestamps-file timestamps.json --output playlist.mp4
 ```
 
