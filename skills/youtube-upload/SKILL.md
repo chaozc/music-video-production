@@ -86,15 +86,19 @@ jazz, cozy jazz, bedtime jazz, relaxing piano, acoustic guitar, sleep music, caf
 ### 3. Upload via script
 
 ```bash
-python3 {baseDir}/scripts/upload.py \
+python scripts/upload.py \
   --video "<video-file>" \
   --title "<title>" \
   --description "<description>" \
   --tags "<tags>" \
   --category 10 \
   --privacy private \
-  --thumbnail "<thumbnail-file>"
+  --thumbnail "<thumbnail-file>" \
+  --playlist "<playlist-name>" \
+  --output-json upload-result.json
 ```
+
+The script handles: OAuth2 authentication, resumable upload with progress, thumbnail setting, playlist management (find or create by name), and outputs a JSON result.
 
 See [references/api.md](references/api.md) for YouTube API details and quota limits.
 

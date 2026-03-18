@@ -1,5 +1,8 @@
 .captcha-token
 node_modules/
 batch-output/
+batch-generate.js
+package.json
+package-lock.json
 *.mp3
 *.mp4
