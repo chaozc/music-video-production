@@ -11,13 +11,44 @@ Converts audio + image(s) into video using `ffmpeg`. Handles two modes:
 
 ## Prerequisites
 
-`ffmpeg` must be installed and available on PATH.
+- `ffmpeg` must be installed and available on PATH
+- `python3` for the build script
+- `Pillow` (optional, only if using text overlay): `pip install Pillow`
 
+Install ffmpeg:
 - **macOS**: `brew install ffmpeg`
 - **Linux (Debian/Ubuntu)**: `sudo apt install ffmpeg`
 - **Linux (Fedora/RHEL)**: `sudo dnf install ffmpeg`
 
 Verify with: `ffmpeg -version`
+
+## Build Script
+
+This skill includes `scripts/build-video.py` — a CLI tool that wraps ffmpeg with correct flags for audio-to-video conversion. **Prefer using the script over raw ffmpeg commands** for reliability and consistency.
+
+```bash
+# Single track
+python scripts/build-video.py --audio track.mp3 --cover cover.png --output video.mp4
+
+# Playlist from directory
+python scripts/build-video.py --mp3-dir ./songs --cover cover.png --output playlist.mp4
+
+# Playlist with explicit track order
+python scripts/build-video.py --mp3-dir ./songs \
+  --order "Track-A.mp3,Track-B.mp3,Track-C.mp3" \
+  --cover cover.png --output playlist.mp4
+
+# With text overlay on cover
+python scripts/build-video.py --mp3-dir ./songs --cover cover.png \
+  --title "Album Title" --subtitle "by Artist" --font /path/to/font.ttf \
+  --output playlist.mp4
+
+# Custom resolution + save timestamps
+python scripts/build-video.py --mp3-dir ./songs --cover cover.png \
+  --resolution 3840x2160 --timestamps-file timestamps.json --output playlist.mp4
+```
+
+The script handles: encoding flags, resolution scaling/padding, segment concatenation, temp file cleanup, and timestamp generation. The agent decides creative parameters (track order, title text, etc.) and passes them as CLI arguments.
 
 ## Workflow
 
