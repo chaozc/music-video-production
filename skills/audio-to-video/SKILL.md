@@ -76,67 +76,11 @@ Before running ffmpeg:
 - Confirm image and audio counts match in playlist mode
 - Warn if output file already exists and ask before overwriting
 
-### Step 3 — Build and run the ffmpeg command
+### Step 3 — Build the video
 
-#### Single mode
+Use `scripts/build-video.py` (see Build Script section above). The script handles all ffmpeg flags, segment encoding, concatenation, and temp file cleanup.
 
-```bash
-ffmpeg -loop 1 -i "image.jpg" -i "audio.mp3" \
-  -c:v libx264 -tune stillimage -c:a aac -b:a 192k \
-  -pix_fmt yuv420p -shortest \
-  -vf "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black" \
-  "output.mp4"
-```
-
-Key flags explained:
-- `-loop 1`: loops the static image for the duration of the audio
-- `-shortest`: ends the video when the audio ends
-- `-tune stillimage`: optimizes H.264 encoding for a static image source
-- `-pix_fmt yuv420p`: ensures broad compatibility (required for YouTube)
-- `scale=...,pad=...`: letterboxes/pillarboxes the image to fill the target resolution without cropping
-
-#### Playlist mode
-
-Playlist mode requires two steps: encode each segment individually, then concatenate.
-
-**Step A — Encode each segment:**
-
-For each audio+image pair, run the single-mode command above, outputting to a temp file:
-
-```bash
-ffmpeg -loop 1 -i "image1.jpg" -i "audio1.mp3" \
-  -c:v libx264 -tune stillimage -c:a aac -b:a 192k \
-  -pix_fmt yuv420p -shortest \
-  -vf "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black" \
-  "/tmp/segment_01.mp4"
-```
-
-Repeat for all pairs, naming segments `segment_01.mp4`, `segment_02.mp4`, etc.
-
-**Step B — Write a concat list file:**
-
-```
-# concat_list.txt
-file '/tmp/segment_01.mp4'
-file '/tmp/segment_02.mp4'
-file '/tmp/segment_03.mp4'
-```
-
-**Step C — Concatenate:**
-
-```bash
-ffmpeg -f concat -safe 0 -i concat_list.txt \
-  -c copy \
-  "playlist_output.mp4"
-```
-
-`-c copy` avoids re-encoding, so this step is fast regardless of playlist length.
-
-**Step D — Clean up temp files** after a successful concat:
-
-```bash
-rm /tmp/segment_*.mp4 concat_list.txt
-```
+If the script is unavailable, see [references/manual-ffmpeg.md](references/manual-ffmpeg.md) for raw ffmpeg commands.
 
 ### Step 4 — Report results
 
@@ -145,22 +89,12 @@ After ffmpeg completes:
 - Report the video duration (use `ffprobe` if available: `ffprobe -v quiet -show_entries format=duration -of csv=p=0 output.mp4`)
 - If ffmpeg exited with an error, show the relevant portion of stderr and suggest a fix
 
-## Format notes
+## Format and resolution notes
 
-| Format | Best for | ffmpeg flags |
-|--------|----------|--------------|
-| `mp4` | YouTube, general sharing, default | `-c:v libx264 -c:a aac` |
-| `mov` | macOS editing (Final Cut, iMovie) | Same codec flags as mp4, just change extension |
-| `webm` | Web embedding | `-c:v libvpx-vp9 -c:a libopus` — slower to encode, mention this |
-
-For `mp4` and `mov`, always include `-pix_fmt yuv420p` for maximum compatibility.
-For `mov` on macOS, you may alternatively use `-c:v h264_videotoolbox` for hardware-accelerated encoding (significantly faster on Apple Silicon), but it is not available on Linux — only suggest this if the user is on macOS.
-
-## Resolution notes
-
-- Always apply the `scale + pad` filter so any image aspect ratio is safely letterboxed/pillarboxed. Never crop or stretch.
-- For square images (album art), `1920x1080` output will result in pillarboxes on the sides. Consider offering `1080x1080` output for Instagram/square use cases.
-- 4K (`3840x2160`) is supported but encodes significantly slower on CPU. Mention this to the user if they request it.
+See [references/manual-ffmpeg.md](references/manual-ffmpeg.md) for format comparison table and resolution guidance. Key defaults:
+- Output format: `mp4` (YouTube compatible)
+- Resolution: `1920x1080` (auto-letterboxed/pillarboxed, never cropped)
+- 4K and square (1080x1080) available via `--resolution` flag
 
 ## Error handling
 
