@@ -91,9 +91,10 @@ def get_credentials():
                 print(f"ERROR: Client secrets not found: {secrets_file}", file=sys.stderr)
                 sys.exit(1)
 
-            print("🔐 Opening browser for OAuth consent...")
             flow = InstalledAppFlow.from_client_secrets_file(secrets_file, SCOPES)
-            creds = flow.run_local_server(port=0)
+
+            print("🔐 Starting OAuth authorization...")
+            creds = flow.run_local_server(port=0, open_browser=False)
 
         # Save token
         with open(token_file, "w") as f:
